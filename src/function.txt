@@ -1,0 +1,131 @@
+Function: get_delivery_companies(page=1, per_page=10, search=None, cat_id=None, type=None, sizeTypetype=None)
+
+Purpose:
+Fetches a paginated list of delivery companies from the API with optional filters.
+
+Parameters:
+- page (int): The page number to retrieve. Defaults to 1.
+- per_page (int): Number of records per page. Defaults to 10.
+- search (str, optional): Search keyword to filter delivery companies by name or other fields.
+- cat_id (str or int, optional): Category ID to filter companies belonging to a specific category.
+- type (str, optional): Filter by a specific type attribute.
+- sizeTypetype (str, optional): Additional filter, possibly a size/type classification.
+
+Description:
+- Constructs the request URL by combining the base URL and endpoint.
+- Builds query parameters with role set to "delivery", pagination details, and optional filters if provided.
+- Sends an HTTP GET request with required headers including an Authorization token.
+- Prints the HTTP status and raw response text for debugging.
+- Raises an error if the response status indicates failure.
+- Parses and returns the JSON response containing the delivery companies list.
+- Catches and prints HTTP errors or other exceptions, returning None if any occur.
+
+
+Function: get_renter_companies(role="renter", page=1, per_page=10)
+
+Purpose:
+Fetches a paginated list of renter companies or delivery companies, depending on the role parameter.
+
+Parameters:
+- role (str): Role to filter by, typically "renter" or "delivery". Defaults to "renter".
+- search (str, optional): Search keyword to filter renter companies by name or other fields.
+- page (int): Page number to retrieve. Defaults to 1.
+- per_page (int): Number of records per page. Defaults to 10.
+
+Description:
+- Defines the API URL and query parameters with the given role and pagination info.
+- Sends an HTTP GET request with headers including the Authorization token.
+- Prints the HTTP status and response text for inspection.
+- Raises an exception if the HTTP status is an error.
+- Returns the JSON-decoded response data.
+- Handles and prints HTTP errors or other exceptions, returning None if any occur.
+
+
+Function: get_vehicle_list(company_id)
+
+Purpose:
+Retrieves detailed information for a specific vehicle by delivery companies unique ID.
+
+Parameters:
+- company_id (str or int): The unique identifier of the delivery company.
+
+Description:
+- Constructs the URL endpoint dynamically using the vehicle ID.
+- Sends an HTTP GET request with necessary headers including Authorization.
+- Prints the status code of the HTTP response.
+- Raises an error if the HTTP response status is unsuccessful.
+- Parses the JSON response.
+- Checks if the response data contains a "data" field; if empty or missing, prints a message indicating no details were found.
+- Returns the JSON data or None in case of exceptions.
+
+
+Function: get_equipment_list(company_id)
+
+Purpose:
+Fetches detailed information for a specific equipment item by renter companies unique ID.
+
+Parameters:
+- company_id (str or int): The unique identifier of the renter company.
+
+Description:
+- Constructs the URL endpoint using the equipment ID.
+- Makes an HTTP GET request with required headers including the Authorization token.
+- Raises an error if the HTTP response indicates failure.
+- Returns the parsed JSON response containing equipment details.
+- Handles and prints HTTP or general errors, returning None if they occur.
+
+
+Function: get_booking_list(page=1, per_page=10, status="")
+
+Purpose:
+Fetches a paginated list of user bookings from the API, filtered by booking status.
+
+Parameters:
+
+page (int): The page number to retrieve. Defaults to 1.
+per_page (int): Number of records per page. Defaults to 10.
+status (str): Booking status to filter by. Possible values include "Completed", "Cancelled".
+
+Description:
+
+Constructs the request URL by combining the base URL and the booking list endpoint.
+Builds query parameters using the specified pagination and status filters.
+Sends an HTTP GET request with appropriate headers, including a user-level Authorization token.
+Prints the HTTP status code for debugging and monitoring.
+Catches and prints HTTP errors or other exceptions and returns None in case of any failure.
+
+Function: get_equipment_details(equipment_id)
+Purpose:
+Fetches detailed information for a specific equipment item using its unique equipment ID.
+
+Parameters:
+
+equipment_id (str): The unique identifier of the equipment item to retrieve.
+
+Description:
+
+Constructs the API URL by appending the equipment ID to the /api/v1/user/home/equipmentDetails/ endpoint.
+Prepares the HTTP request headers, including Authorization, language, and device information.
+Sends a GET request to the API endpoint.
+Prints the HTTP response status code for visibility.
+Raises an exception if the HTTP response indicates failure.
+Parses and returns the JSON response containing detailed equipment data.
+Catches and logs any HTTP errors or general exceptions, returning None if an error occurs.
+
+Function: get_vehicle_details(vehicle_id)
+Purpose:
+Retrieves detailed information for a specific vehicle using its unique vehicle ID.
+
+Parameters:
+
+vehicle_id (str): The unique identifier of the vehicle to retrieve.
+
+Description:
+
+Builds the request URL by combining the base URL and /api/v1/user/home/vehicleDetails/ with the given vehicle ID.
+Sets up request headers, including a valid user-level Authorization token and client environment details.
+Executes a GET request to fetch vehicle information from the API.
+Logs the response's HTTP status code for debugging.
+Raises an error if the response status is not successful (non-2xx).
+Parses and returns the vehicle details as JSON data.
+Captures and prints any HTTP or runtime errors and returns None if an exception occurs.
