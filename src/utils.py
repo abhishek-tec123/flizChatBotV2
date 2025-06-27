@@ -1,31 +1,65 @@
 import json
 from typing import Dict, List, Optional, Tuple, Any
 from fastapi import HTTPException
-from context import generate_response_from_groq
+from context import process_full_api_response
 from retrever import (
     get_vehicle_list, get_equipment_list,
     get_delivery_companies, get_renter_companies
 )
 
 def get_delivery_company_names(full_response):
+    if not full_response:
+        return []
     item_list = full_response.get("data", {}).get("itemList", [])
     return [company['name'] for company in item_list]
 
 def get_rental_company_names(full_response):
+    if not full_response:
+        return []
     item_list = full_response.get("data", {}).get("itemList", [])
     return [company['name'] for company in item_list]
 
-delivery_companies = get_delivery_companies(page=1, per_page=100)
-delivery_company_names = get_delivery_company_names(delivery_companies)
-rental_companies = get_renter_companies(page=1, per_page=100)
-rental_company_names = get_rental_company_names(rental_companies)
+# Cache for company data to avoid repeated API calls
+_delivery_companies_cache = None
+_rental_companies_cache = None
+_delivery_company_names_cache = None
+_rental_company_names_cache = None
 
+def get_cached_delivery_companies():
+    """Get delivery companies with caching to avoid repeated API calls."""
+    global _delivery_companies_cache, _delivery_company_names_cache
+    
+    if _delivery_companies_cache is None:
+        try:
+            _delivery_companies_cache = get_delivery_companies(page=1, per_page=100)
+            _delivery_company_names_cache = get_delivery_company_names(_delivery_companies_cache)
+        except Exception as e:
+            print(f"Error fetching delivery companies: {e}")
+            _delivery_companies_cache = None
+            _delivery_company_names_cache = []
+    
+    return _delivery_companies_cache, _delivery_company_names_cache
+
+def get_cached_rental_companies():
+    """Get rental companies with caching to avoid repeated API calls."""
+    global _rental_companies_cache, _rental_company_names_cache
+    
+    if _rental_companies_cache is None:
+        try:
+            _rental_companies_cache = get_renter_companies(page=1, per_page=100)
+            _rental_company_names_cache = get_rental_company_names(_rental_companies_cache)
+        except Exception as e:
+            print(f"Error fetching rental companies: {e}")
+            _rental_companies_cache = None
+            _rental_company_names_cache = []
+    
+    return _rental_companies_cache, _rental_company_names_cache
 
 def generate_llm_response(response_data: Dict, query: str) -> str:
     """Generate response using Groq LLM."""
     try:
         response_text = json.dumps(response_data, indent=3)
-        return generate_response_from_groq(response_text, query=query)
+        return process_full_api_response(response_text, query=query)
     except Exception as e:
         return f"Error generating response: {str(e)}"
 
@@ -105,9 +139,9 @@ def handle_company_based_query(function_name: str, company_name: str, query: str
 
     if not company_id:
         if function_name == "get_vehicle_list":
-            available_companies = delivery_company_names
+            _, available_companies = get_cached_delivery_companies()
         else:  # get_equipment_list
-            available_companies = rental_company_names
+            _, available_companies = get_cached_rental_companies()
 
         available_str = ", ".join(available_companies)
         raise HTTPException(

@@ -108,7 +108,7 @@ class FunctionRetriever:
             return None
 
         logging.info(f"Retrieving function for query: '{query}'")
-        retriever = self.vectors.as_retriever()
+        retriever = self.vectors.as_retriever(search_kwargs={"k": 2})
         document_chain = create_stuff_documents_chain(llm, prompt)
         retrieval_chain = create_retrieval_chain(retriever, document_chain)
         response = retrieval_chain.invoke({'input': query})
