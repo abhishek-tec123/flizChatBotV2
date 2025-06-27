@@ -2,13 +2,18 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
 from tiktoken import get_encoding
 import logging
-import asyncio
+import asyncio,os
 import json
+from dotenv import load_dotenv
 
 log = logging.getLogger(__name__)
+load_dotenv()
 
 # Set up Groq client
-groq_api_key = "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"  # Replace securely
+# groq_api_key  = "api_key"
+groq_api_key = os.getenv("GROQ_API_KEY")
+if not groq_api_key:
+    raise ValueError("GROQ_API_KEY is not set in environment variables.")
 llm = ChatGroq(
     model_name="meta-llama/llama-4-scout-17b-16e-instruct",
     api_key=groq_api_key
