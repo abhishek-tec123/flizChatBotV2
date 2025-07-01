@@ -108,7 +108,7 @@ class FunctionRetriever:
             return None
 
         logging.info(f"Retrieving function for query: '{query}'")
-        retriever = self.vectors.as_retriever(search_kwargs={"k": 2})
+        retriever = self.vectors.as_retriever()
         document_chain = create_stuff_documents_chain(llm, prompt)
         retrieval_chain = create_retrieval_chain(retriever, document_chain)
         response = retrieval_chain.invoke({'input': query})
@@ -149,7 +149,7 @@ def call_function_by_name(function_name: str, parameters: Dict[str, Any]) -> Any
         logging.error(f"Error calling function '{function_name}': {e}")
         return None
 
-from api_function import get_delivery_companies,get_renter_companies, get_vehicle_list,get_equipment_list,get_booking_list
+from api_function import get_delivery_companies,get_renter_companies, get_vehicle_list,get_equipment_list,get_booking_list,get_equipment_details,get_vehicle_details
 
 # -------------------------
 # Example Usage

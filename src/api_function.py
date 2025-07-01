@@ -5,7 +5,7 @@ BASE_URL = "https://dev.api.fliz.com.sa"
 
 # Authentication Tokens
 TOKENS = {
-    "guest": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWUyYWNkOGIxMDA1MjQ2M2Y4NjQ3NiIsInJvbGUiOiJndWVzdF91c2VyIiwiaWF0IjoxNzUxMDAxODA1LCJleHAiOjE3NTM1OTM4MDV9.HPy1M0zJyXcGCmnG0yXuEW4sIhkqs3SmLpUlAEwQsJ0",
+    "guest": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NDY4MmQ3ODQ4ZjI2NmE0ZDUwNGE1NiIsInJvbGUiOiJndWVzdF91c2VyIiwiaWF0IjoxNzQ5NDUxNDc5LCJleHAiOjE3NTIwNDM0Nzl9.ePU8pFs6RQ4qeTuvu8BzvORx3oCXiVGi4CwotV1E3TE",
     "user": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjVkN2M5N2U3ZWY5ZTBmOTkxNWY0ZiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzQ3NzQxNjU0LCJleHAiOjE3NDgxNzM2NTR9.mYE3kIqsf0-GkiLpRi7DpVZi6r8J25uLfmNvTC0YRHE"
 }
 
@@ -14,8 +14,8 @@ ENDPOINTS = {
     "vehicle_list": "/api/v1/common/guestUser/vehilceList/{}",
     "equipment_list": "/api/v1/common/guestUser/equipmentList/{}",
     "booking_list": "/api/v1/user/booking/bookingList",
-    "equipment_details": "/api/v1/common/guestUser/equipmentDetails/{}",
-    "vehicle_details": "/api/v1/common/guestUser/vehicleDetails/{}"
+    "vehicle_details": "/api/v1/common/guestUser/vehicleDetails/{}",
+    "equipment_details": "/api/v1/common/guestUser/equipmentDetails/{}"
 }
 
 COMMON_HEADERS = {
@@ -44,22 +44,14 @@ def make_request(url, method="GET", headers=None, params=None, token_type="guest
     
     try:
         response = requests.request(method, url, headers=headers, params=params)
-        print(f"Request to {url} - Status Code: {response.status_code}")
-        
-        if response.status_code == 451:
-            print("Warning: API returned 451 - Unavailable For Legal Reasons. This might be due to geographic restrictions or legal compliance issues.")
-            return None
-            
+        print(f"Request to {url} - Status Code:", response.status_code)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as err:
-        print(f"HTTP error: {err}")
-        if err.response.status_code == 451:
-            print("The API is currently unavailable due to legal restrictions. Please check your location or try again later.")
-        return None
+        print("HTTP error:", err)
     except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+        print("An error occurred:", e)
+    return None
 
 # ==== Guest User API Functions ====
 def get_delivery_companies(page=1, per_page=10, search=None, cat_id=None, type=None, sizeTypetype=None):
@@ -100,13 +92,6 @@ def get_equipment_list(company_id):
     url = BASE_URL + ENDPOINTS["equipment_list"].format(company_id)
     return make_request(url, token_type="guest")
 
-def get_equipment_details(equipment_id):
-    url = BASE_URL + ENDPOINTS["equipment_details"].format(equipment_id)
-    return make_request(url, token_type="guest")
-
-def get_vehicle_details(vehicle_id):
-    url = BASE_URL + ENDPOINTS["vehicle_details"].format(vehicle_id)
-    return make_request(url, token_type="guest")
 
 # ==== Authenticated User API Functions ====
 def get_booking_list(page=1, per_page=10, status="Completed"):
@@ -118,7 +103,15 @@ def get_booking_list(page=1, per_page=10, status="Completed"):
     }
     return make_request(url, params=params, token_type="user")
 
-# # ==== Main Function ====
+def get_equipment_details(equipment_id):
+    url = BASE_URL + ENDPOINTS["equipment_details"].format(equipment_id)
+    return make_request(url, token_type="guest")
+
+def get_vehicle_details(vehicle_id):
+    url = BASE_URL + ENDPOINTS["vehicle_details"].format(vehicle_id)
+    return make_request(url, token_type="guest")
+
+# ==== Main Function ====
 # if __name__ == "__main__":
 # #     # Example usage of the functions
 #     print("\n--- Delivery Companies ---")
@@ -129,14 +122,10 @@ def get_booking_list(page=1, per_page=10, status="Completed"):
 #     renter_companies = get_renter_companies(page=1, per_page=3)
 #     print(renter_companies)
 
-    # print("\n--- Vehicle Details ---")
-    # vehicle_details = get_vehicle_details("6825f680064c919c60d06988")
-    # print(vehicle_details)
+#     print("\n--- Vehicle Details ---")
+#     vehicle_details = get_vehicle_details("6825f680064c919c60d06988")
+#     print(vehicle_details)
 
-    # print("\n--- Equipment Details ---")
-    # equipment_details = get_equipment_details("682c6da5cd7a35d99f0b889a")
-    # print(equipment_details)
-
-    # print("\n--- Completed Bookings ---")
-    # completed_bookings = get_booking_list(status="Completed")
-    # print(completed_bookings)
+#     print("\n--- Completed Bookings ---")
+#     completed_bookings = get_booking_list(status="Completed")
+#     print(completed_bookings)

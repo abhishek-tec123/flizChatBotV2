@@ -86,12 +86,3 @@ file.seek(50, 0)
 content = file.read()
 print("File content:", content.decode('utf-8'))
 file.close()
-
-
-# // {
-# //     "query": "how many i have delivery company"
-# // }
-
-# {
-#     "query": "show equipment details of Hydraulic Breakers from Boat"
-# }
