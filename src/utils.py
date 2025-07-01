@@ -1,65 +1,32 @@
 import json
 from typing import Dict, List, Optional, Tuple, Any
 from fastapi import HTTPException
-from context import process_full_api_response
+from context import generate_response_from_groq
+import re
 from retrever import (
     get_vehicle_list, get_equipment_list,
-    get_delivery_companies, get_renter_companies
+    get_delivery_companies, get_renter_companies , get_vehicle_details, get_equipment_details
 )
 
 def get_delivery_company_names(full_response):
-    if not full_response:
-        return []
     item_list = full_response.get("data", {}).get("itemList", [])
     return [company['name'] for company in item_list]
 
 def get_rental_company_names(full_response):
-    if not full_response:
-        return []
     item_list = full_response.get("data", {}).get("itemList", [])
     return [company['name'] for company in item_list]
 
-# Cache for company data to avoid repeated API calls
-_delivery_companies_cache = None
-_rental_companies_cache = None
-_delivery_company_names_cache = None
-_rental_company_names_cache = None
+delivery_companies = get_delivery_companies(page=1, per_page=100)
+delivery_company_names = get_delivery_company_names(delivery_companies)
+rental_companies = get_renter_companies(page=1, per_page=100)
+rental_company_names = get_rental_company_names(rental_companies)
 
-def get_cached_delivery_companies():
-    """Get delivery companies with caching to avoid repeated API calls."""
-    global _delivery_companies_cache, _delivery_company_names_cache
-    
-    if _delivery_companies_cache is None:
-        try:
-            _delivery_companies_cache = get_delivery_companies(page=1, per_page=100)
-            _delivery_company_names_cache = get_delivery_company_names(_delivery_companies_cache)
-        except Exception as e:
-            print(f"Error fetching delivery companies: {e}")
-            _delivery_companies_cache = None
-            _delivery_company_names_cache = []
-    
-    return _delivery_companies_cache, _delivery_company_names_cache
-
-def get_cached_rental_companies():
-    """Get rental companies with caching to avoid repeated API calls."""
-    global _rental_companies_cache, _rental_company_names_cache
-    
-    if _rental_companies_cache is None:
-        try:
-            _rental_companies_cache = get_renter_companies(page=1, per_page=100)
-            _rental_company_names_cache = get_rental_company_names(_rental_companies_cache)
-        except Exception as e:
-            print(f"Error fetching rental companies: {e}")
-            _rental_companies_cache = None
-            _rental_company_names_cache = []
-    
-    return _rental_companies_cache, _rental_company_names_cache
 
 def generate_llm_response(response_data: Dict, query: str) -> str:
     """Generate response using Groq LLM."""
     try:
         response_text = json.dumps(response_data, indent=3)
-        return process_full_api_response(response_text, query=query)
+        return generate_response_from_groq(response_text, query=query)
     except Exception as e:
         return f"Error generating response: {str(e)}"
 
@@ -129,6 +96,168 @@ def find_entity_by_type(entity_list: List[Dict], entity_type: str, is_vehicle: b
                 return details.get("_id")
     return None
 
+def parse_detail_query(query: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Parse queries like 'vehicle details of truck of ABC company' or 'equipment details of crane from XYZ'
+    Returns: (entity_type, entity_name, company_name)
+    """
+    query_lower = query.lower()
+    
+    # Check if it's a vehicle or equipment details query
+    entity_type = None
+    if "vehicle details" in query_lower or "vehicle detail" in query_lower:
+        entity_type = "vehicle"
+    elif "equipment details" in query_lower or "equipment detail" in query_lower:
+        entity_type = "equipment"
+    else:
+        return None, None, None
+    
+    # Remove common words and normalize
+    query_cleaned = re.sub(r'\b(details?|of|from|in|the|company)\b', ' ', query_lower)
+    query_cleaned = re.sub(r'\s+', ' ', query_cleaned).strip()
+    
+    # Extract parts after entity type
+    if entity_type == "vehicle":
+        pattern = r'vehicle\s+(.+)'
+    else:
+        pattern = r'equipment\s+(.+)'
+    
+    match = re.search(pattern, query_cleaned)
+    if not match:
+        return entity_type, None, None
+    
+    remaining = match.group(1).strip()
+    
+    # Split on common separators to find entity name and company
+    words = remaining.split()
+    if len(words) >= 2:
+        # Last word is likely company name, everything else is entity name
+        entity_name = ' '.join(words[:-1])
+        company_name = words[-1]
+        return entity_type, entity_name, company_name
+    elif len(words) == 1:
+        # Only one word, could be either entity or company
+        return entity_type, words[0], None
+    
+    return entity_type, None, None
+
+def find_entity_in_list(entity_list: List[Dict], entity_name: str, is_vehicle: bool) -> Optional[str]:
+    """
+    Find entity ID by name in the entity list.
+    """
+    entity_name_lower = entity_name.lower()
+    
+    for entity in entity_list:
+        if is_vehicle:
+            details = entity.get("vehicleDetails", {})
+            # Check multiple fields for vehicle
+            fields_to_check = ["sizeType", "vehicleName", "name", "title"]
+        else:
+            details = entity.get("equipmentDetails", {})
+            # Check multiple fields for equipment
+            fields_to_check = ["equipmentName", "name", "title", "type"]
+        
+        if details:
+            for field in fields_to_check:
+                field_value = details.get(field, "")
+                if field_value and entity_name_lower in field_value.lower():
+                    return details.get("_id")
+    
+    return None
+
+def handle_details_query(query: str) -> Dict[str, Any]:
+    """
+    Handle detailed queries for vehicles and equipment.
+    """
+    entity_type, entity_name, company_name = parse_detail_query(query)
+    
+    if not entity_type:
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to parse query. Please specify 'vehicle details' or 'equipment details'"
+        )
+    
+    if not entity_name or not company_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Please specify both the entity name and company name in your query"
+        )
+    
+    is_vehicle = entity_type == "vehicle"
+    
+    # Get company list based on entity type
+    if is_vehicle:
+        companies = get_delivery_companies(page=1, per_page=10, search=company_name)
+        available_companies = delivery_company_names
+    else:
+        companies = get_renter_companies(role="renter", search=company_name, page=1, per_page=10)
+        available_companies = rental_company_names
+    
+    company_list = companies.get("data", {}).get("itemList", [])
+    company_id = find_company_by_name(company_list, company_name)
+    
+    if not company_id:
+        available_str = ", ".join(available_companies)
+        raise HTTPException(
+            status_code=404,
+            detail=f"Company '{company_name}' not found. Available companies: {available_str}"
+        )
+    
+    # Get entity list from the company
+    if is_vehicle:
+        entity_list_response = get_vehicle_list(company_id)
+    else:
+        entity_list_response = get_equipment_list(company_id)
+    
+    if not entity_list_response or not entity_list_response.get("data"):
+        raise HTTPException(
+            status_code=404,
+            detail=f"No {entity_type}s found for company '{company_name}'"
+        )
+    
+    entity_list = entity_list_response.get("data", {}).get("itemList", [])
+    entity_id = find_entity_in_list(entity_list, entity_name, is_vehicle)
+    
+    if not entity_id:
+        # Get available entity names for error message
+        available_entities = []
+        for entity in entity_list:
+            if is_vehicle:
+                details = entity.get("vehicleDetails", {})
+                name = details.get("sizeType") or details.get("vehicleName") or details.get("name", "")
+            else:
+                details = entity.get("equipmentDetails", {})
+                name = details.get("equipmentName") or details.get("name", "")
+            
+            if name:
+                available_entities.append(name)
+        
+        available_str = ", ".join(available_entities[:10])  # Limit to first 10
+        raise HTTPException(
+            status_code=404,
+            detail=f"{entity_type.title()} '{entity_name}' not found in company '{company_name}'. Available {entity_type}s: {available_str}"
+        )
+    
+    # Get detailed information
+    if is_vehicle:
+        details_response = get_vehicle_details(entity_id)
+    else:
+        details_response = get_equipment_details(entity_id)
+    
+    if not details_response:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve {entity_type} details"
+        )
+    
+    generated_response = generate_llm_response(details_response, query)
+    
+    return {
+        "function_called": f"get_{entity_type}_details",
+        "entity_id": entity_id,
+        "generated_response": generated_response
+    }
+
 def handle_company_based_query(function_name: str, company_name: str, query: str) -> Dict[str, Any]:
     """Handle queries that require company lookup."""
     company_list, company_type = get_company_list(function_name, company_name)
@@ -139,9 +268,9 @@ def handle_company_based_query(function_name: str, company_name: str, query: str
 
     if not company_id:
         if function_name == "get_vehicle_list":
-            _, available_companies = get_cached_delivery_companies()
+            available_companies = delivery_company_names
         else:  # get_equipment_list
-            _, available_companies = get_cached_rental_companies()
+            available_companies = rental_company_names
 
         available_str = ", ".join(available_companies)
         raise HTTPException(
@@ -164,86 +293,6 @@ def handle_company_based_query(function_name: str, company_name: str, query: str
         "generated_response": generated_response
     }
 
-
-def handle_vehicle_details(query: str) -> Dict[str, Any]:
-    """Handle vehicle details queries."""
-    vehicle_type, company_name = extract_entity_details(query, "vehicle")
-    
-    if not company_name or not vehicle_type:
-        raise HTTPException(
-            status_code=400,
-            detail="Could not extract company name and vehicle type from query. Please use format: 'show vehicle details of [vehicle type] of/from/in [company name]'"
-        )
-
-    company_list, _ = get_company_list("get_vehicle_list", company_name)
-    company_id = find_company_by_name(company_list, company_name)
-    print("company_id :", company_id)
-    if not company_id:
-        available_companies = [c.get("name") for c in company_list]
-        raise HTTPException(
-            status_code=404,
-            detail=f"Company '{company_name}' not found. Available companies: {available_companies}"
-        )
-
-    vehicle_list_response = get_vehicle_list(company_id)
-    vehicle_list = vehicle_list_response.get("data", {}).get("itemList", [])
-    vehicle_id = find_entity_by_type(vehicle_list, vehicle_type, is_vehicle=True)
-    print("vehicle_id :", vehicle_id)
-    if not vehicle_id:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Vehicle type '{vehicle_type}' not found in company '{company_name}'."
-        )
-
-    from api_function import get_vehicle_details
-    response = get_vehicle_details(vehicle_id)
-    generated_response = generate_llm_response(response, query)
-    
-    return {
-        "function_called": "get_vehicle_details",
-        "generated_response": generated_response
-    }
-
-def handle_equipment_details(query: str) -> Dict[str, Any]:
-    """Handle equipment details queries."""
-    equipment_type, company_name = extract_entity_details(query, "equipment")
-    
-    if not company_name or not equipment_type:
-        raise HTTPException(
-            status_code=400,
-            detail="Could not extract company name and equipment type from query. Please use format: 'show equipment details of [equipment type] of/from/in [company name]'"
-        )
-
-    company_list, _ = get_company_list("get_equipment_list", company_name)
-    company_id = find_company_by_name(company_list, company_name)
-    print("company_id :", company_id)
-    if not company_id:
-        available_companies = [c.get("name") for c in company_list]
-        raise HTTPException(
-            status_code=404,
-            detail=f"Company '{company_name}' not found. Available companies: {available_companies}"
-        )
-
-    equipment_list_response = get_equipment_list(company_id)
-    equipment_list = equipment_list_response.get("data", {}).get("itemList", [])
-    equipment_id = find_entity_by_type(equipment_list, equipment_type, is_vehicle=False)
-    print("equipment_id :", equipment_id)
-    if not equipment_id:
-        available_equipment = [e.get("equipmentDetails", {}).get("equipmentName", "") for e in equipment_list]
-        raise HTTPException(
-            status_code=404,
-            detail=f"Equipment '{equipment_type}' not found in company '{company_name}'. Available equipment: {available_equipment}"
-        )
-
-    from api_function import get_equipment_details
-    response = get_equipment_details(equipment_id)
-    generated_response = generate_llm_response(response, query)
-    
-    return {
-        "function_called": "get_equipment_details",
-        "generated_response": generated_response
-    }
-
 def handle_generic_query(function_name: str, parameters: Dict, query: str) -> Dict[str, Any]:
     """Handle generic function calls."""
     from retrever import call_function_by_name
@@ -254,4 +303,5 @@ def handle_generic_query(function_name: str, parameters: Dict, query: str) -> Di
     return {
         "function_called": function_name,
         "generated_response": generated_response
-    } 
+    }
+
