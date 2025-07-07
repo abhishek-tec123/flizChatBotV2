@@ -6,6 +6,9 @@ from retrever import (
     get_vehicle_list, get_equipment_list,
     get_delivery_companies, get_renter_companies
 )
+import re
+from dateutil import parser as date_parser
+from api_function import get_payment_list
 
 def get_delivery_company_names(full_response):
     if not full_response:
@@ -187,6 +190,7 @@ def handle_vehicle_details(query: str) -> Dict[str, Any]:
 
     vehicle_list_response = get_vehicle_list(company_id)
     vehicle_list = vehicle_list_response.get("data", {}).get("itemList", [])
+    print("vehicle_listednwe : ",vehicle_list)
     vehicle_id = find_entity_by_type(vehicle_list, vehicle_type, is_vehicle=True)
     print("vehicle_id :", vehicle_id)
     if not vehicle_id:
@@ -254,4 +258,42 @@ def handle_generic_query(function_name: str, parameters: Dict, query: str) -> Di
     return {
         "function_called": function_name,
         "generated_response": generated_response
-    } 
+    }
+
+def handle_payment_query(query: str) -> dict:
+    """Handle payment list queries with a date in natural language, or all dates if no date is given. Supports pagination."""
+    # Try to extract a date from the query
+    date_match = re.search(r'(\d{1,2} \w+ \d{4})', query)
+    # Extract pagination if present
+    page_match = re.search(r'page\s*(\d+)', query, re.IGNORECASE)
+    per_page_match = re.search(r'per[_\s]?page\s*(\d+)', query, re.IGNORECASE)
+    page = int(page_match.group(1)) if page_match else 1
+    per_page = int(per_page_match.group(1)) if per_page_match else 10
+
+    if date_match:
+        date_str = date_match.group(1)
+        try:
+            date_obj = date_parser.parse(date_str)
+            date_formatted = date_obj.strftime("%Y-%m-%d")
+            payments = get_payment_list(page=page, per_page=per_page, start_date=date_formatted, end_date=date_formatted)
+            generated_response = generate_llm_response(payments, query)
+            return {
+                "function_called": "get_payment_list",
+                "date": date_formatted,
+                "page": page,
+                "per_page": per_page,
+                "generated_response": generated_response
+            }
+        except Exception as e:
+            return {"error": f"Could not parse date: {str(e)}"}
+    else:
+        # No date found, fetch all payments
+        payments = get_payment_list(page=page, per_page=per_page, start_date="", end_date="")
+        generated_response = generate_llm_response(payments, query)
+        return {
+            "function_called": "get_payment_list",
+            "date": "all",
+            "page": page,
+            "per_page": per_page,
+            "generated_response": generated_response
+        } 

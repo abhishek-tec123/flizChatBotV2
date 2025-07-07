@@ -129,3 +129,10 @@ Logs the response's HTTP status code for debugging.
 Raises an error if the response status is not successful (non-2xx).
 Parses and returns the vehicle details as JSON data.
 Captures and prints any HTTP or runtime errors and returns None if an exception occurs.
+
+get_user_profile_details:
+Fetches the authenticated user's profile details from the /api/v1/user/profile/details endpoint using the user token. Returns the user's profile information as a JSON object. No parameters required.
+
+get_payment_list:
+Fetches the payment list for the authenticated user from the /api/v1/common/payment/paymentList endpoint using the user token. Accepts parameters: role (default 'user'), page, per_page, search, start_date, and end_date. Returns a list of payment records as a JSON object.
+

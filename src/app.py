@@ -22,11 +22,12 @@ from utils import (
     handle_company_based_query,
     handle_vehicle_details,
     handle_equipment_details,
-    handle_generic_query
+    handle_generic_query,
+    handle_payment_query
 )
 
 # === Initialize retriever ===
-retriever = FunctionRetriever("/Users/macbook/Desktop/fliz_ChatBot/src/function.txt")
+retriever = FunctionRetriever("/Users/abhishek/Desktop/flizChatBot/src/function.txt")
 retriever.vector_embedding()
 
 # === Route Handlers ===
@@ -34,6 +35,9 @@ retriever.vector_embedding()
 def handle_query(request: QueryRequest) -> Dict[str, Any]:
     """Handle incoming queries and route to appropriate handlers."""
     query = request.query
+    # Payment query shortcut
+    if "payment" in query.lower() and "list" in query.lower():
+        return handle_payment_query(query)
     result = retriever.retrieval(query)
 
     if not result:

@@ -6,7 +6,7 @@ BASE_URL = "https://dev.api.fliz.com.sa"
 # Authentication Tokens
 TOKENS = {
     "guest": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWUyYWNkOGIxMDA1MjQ2M2Y4NjQ3NiIsInJvbGUiOiJndWVzdF91c2VyIiwiaWF0IjoxNzUxMDAxODA1LCJleHAiOjE3NTM1OTM4MDV9.HPy1M0zJyXcGCmnG0yXuEW4sIhkqs3SmLpUlAEwQsJ0",
-    "user": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjVkN2M5N2U3ZWY5ZTBmOTkxNWY0ZiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzQ3NzQxNjU0LCJleHAiOjE3NDgxNzM2NTR9.mYE3kIqsf0-GkiLpRi7DpVZi6r8J25uLfmNvTC0YRHE"
+    "user": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjVkN2M5N2U3ZWY5ZTBmOTkxNWY0ZiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzUxODc0Nzc4LCJleHAiOjE3NTIzMDY3Nzh9._zT_oCWzZ0pd49ubkM2BFP3I03ya0okegdEpB8eRMRg"
 }
 
 ENDPOINTS = {
@@ -15,7 +15,9 @@ ENDPOINTS = {
     "equipment_list": "/api/v1/common/guestUser/equipmentList/{}",
     "booking_list": "/api/v1/user/booking/bookingList",
     "equipment_details": "/api/v1/common/guestUser/equipmentDetails/{}",
-    "vehicle_details": "/api/v1/common/guestUser/vehicleDetails/{}"
+    "vehicle_details": "/api/v1/common/guestUser/vehicleDetails/{}",
+    "user_profile_details": "/api/v1/user/profile/details",
+    "payment_list": "/api/v1/common/payment/paymentList"
 }
 
 COMMON_HEADERS = {
@@ -117,6 +119,24 @@ def get_booking_list(page=1, per_page=10, status="Completed"):
         "status": status
     }
     return make_request(url, params=params, token_type="user")
+
+def get_user_profile_details():
+    """Get the authenticated user's profile details."""
+    url = BASE_URL + ENDPOINTS["user_profile_details"]
+    return make_request(url, method="GET", token_type="user")
+
+def get_payment_list(role="user", page=1, per_page=10, search="", start_date="", end_date=""):
+    """Get the payment list for the authenticated user."""
+    url = BASE_URL + ENDPOINTS["payment_list"]
+    params = {
+        "role": role,
+        "page": page,
+        "perPage": per_page,
+        "search": search,
+        "startDate": start_date,
+        "endDate": end_date
+    }
+    return make_request(url, params=params, method="GET", token_type="user")
 
 # # ==== Main Function ====
 # if __name__ == "__main__":

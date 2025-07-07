@@ -54,6 +54,7 @@ def generate_response_from_groq(input_text: str, query: str = "", custom_prompt:
     # Try to log response token count
     response_text = getattr(response, 'content', str(response))
     logging.info(f"[Token Log] response tokens: {count_tokens(response_text)}")
+    print(response.content)
 
     return response.content
 
