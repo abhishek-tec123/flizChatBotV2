@@ -4,11 +4,10 @@ from fastapi import HTTPException
 from context import process_full_api_response
 from retrever import (
     get_vehicle_list, get_equipment_list,
-    get_delivery_companies, get_renter_companies
+    get_delivery_companies, get_renter_companies,get_payment_list,get_usr_favourite_list
 )
 import re
 from dateutil import parser as date_parser
-from api_function import get_payment_list
 
 def get_delivery_company_names(full_response):
     if not full_response:
@@ -163,7 +162,7 @@ def handle_company_based_query(function_name: str, company_name: str, query: str
     generated_response = generate_llm_response(response, query)
     print("generated_response :", generated_response)
     return {
-        "function_called": function_name,
+        "api_called": function_name,
         "generated_response": generated_response
     }
 
@@ -204,7 +203,7 @@ def handle_vehicle_details(query: str) -> Dict[str, Any]:
     generated_response = generate_llm_response(response, query)
     
     return {
-        "function_called": "get_vehicle_details",
+        "api_called": "get_vehicle_details",
         "generated_response": generated_response
     }
 
@@ -244,7 +243,7 @@ def handle_equipment_details(query: str) -> Dict[str, Any]:
     generated_response = generate_llm_response(response, query)
     
     return {
-        "function_called": "get_equipment_details",
+        "api_called": "get_equipment_details",
         "generated_response": generated_response
     }
 
@@ -252,11 +251,12 @@ def handle_generic_query(function_name: str, parameters: Dict, query: str) -> Di
     """Handle generic function calls."""
     from retrever import call_function_by_name
     response = call_function_by_name(function_name, parameters)
+    print("responsedew : ", response)
     print("response :", "success" if response else "failed")
     generated_response = generate_llm_response(response, query)
     print("generated_response :", generated_response)
     return {
-        "function_called": function_name,
+        "api_called": function_name,
         "generated_response": generated_response
     }
 
@@ -278,7 +278,7 @@ def handle_payment_query(query: str) -> dict:
             payments = get_payment_list(page=page, per_page=per_page, start_date=date_formatted, end_date=date_formatted)
             generated_response = generate_llm_response(payments, query)
             return {
-                "function_called": "get_payment_list",
+                "api_called": "get_payment_list",
                 "date": date_formatted,
                 "page": page,
                 "per_page": per_page,
@@ -291,9 +291,26 @@ def handle_payment_query(query: str) -> dict:
         payments = get_payment_list(page=page, per_page=per_page, start_date="", end_date="")
         generated_response = generate_llm_response(payments, query)
         return {
-            "function_called": "get_payment_list",
+            "api_called": "get_payment_list",
             "date": "all",
             "page": page,
             "per_page": per_page,
             "generated_response": generated_response
-        } 
+        }
+def handle_favourite_query(query: str) -> dict:
+    """Handle favourite list queries for company, vehicle, or equipment."""
+    import re
+    # Extract type from query
+    type_match = re.search(r"favou?rite (company|vehicle|equipment)", query, re.IGNORECASE)
+    type_ = type_match.group(1).lower() if type_match else "company"
+    page = 1
+    per_page = 10
+    response = get_usr_favourite_list(type=type_, page=page, per_page=per_page)
+    generated_response = generate_llm_response(response, query)
+    return {
+        "api_called": "get_usr_favourite_list",
+        "type": type_,
+        "page": page,
+        "per_page": per_page,
+        "generated_response": generated_response
+    }

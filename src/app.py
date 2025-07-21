@@ -23,7 +23,8 @@ from utils import (
     handle_vehicle_details,
     handle_equipment_details,
     handle_generic_query,
-    handle_payment_query
+    handle_payment_query,
+    handle_favourite_query
 )
 
 # === Initialize retriever ===
@@ -33,9 +34,7 @@ retriever.vector_embedding()
 # === Route Handlers ===
 @app.post("/query")
 def handle_query(request: QueryRequest) -> Dict[str, Any]:
-    """Handle incoming queries and route to appropriate handlers."""
     query = request.query
-    # Payment query shortcut
     if "payment" in query.lower() and "list" in query.lower():
         return handle_payment_query(query)
     result = retriever.retrieval(query)
@@ -51,19 +50,16 @@ def handle_query(request: QueryRequest) -> Dict[str, Any]:
     function_name = details['function_name']
     parameters = details['parameters']
 
-    # Handle company-based queries
-    if function_name in ["get_vehicle_list", "get_equipment_list"] and "company_id" in parameters:
+    # if function_name == "get_payment_list":
+    #     return handle_payment_query(query)
+    if function_name == "get_usr_favourite_list":
+        return handle_favourite_query(query)
+    elif function_name in ["get_vehicle_list", "get_equipment_list"] and "company_id" in parameters:
         return handle_company_based_query(function_name, parameters["company_id"], query)
-    
-    # Handle vehicle details query
     elif function_name == "get_vehicle_details":
         return handle_vehicle_details(query)
-    
-    # Handle equipment details query
     elif function_name == "get_equipment_details":
         return handle_equipment_details(query)
-    
-    # Fallback to generic function call
     return handle_generic_query(function_name, parameters, query)
 
 @app.get("/")

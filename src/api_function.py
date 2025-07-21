@@ -6,7 +6,7 @@ BASE_URL = "https://dev.api.fliz.com.sa"
 # Authentication Tokens
 TOKENS = {
     "guest": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWUyYWNkOGIxMDA1MjQ2M2Y4NjQ3NiIsInJvbGUiOiJndWVzdF91c2VyIiwiaWF0IjoxNzUxMDAxODA1LCJleHAiOjE3NTM1OTM4MDV9.HPy1M0zJyXcGCmnG0yXuEW4sIhkqs3SmLpUlAEwQsJ0",
-    "user": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjVkN2M5N2U3ZWY5ZTBmOTkxNWY0ZiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzUxODc0Nzc4LCJleHAiOjE3NTIzMDY3Nzh9._zT_oCWzZ0pd49ubkM2BFP3I03ya0okegdEpB8eRMRg"
+    "user": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjVkN2M5N2U3ZWY5ZTBmOTkxNWY0ZiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzUyOTA1NTIwLCJleHAiOjE3NTMzMzc1MjB9.kGxoCwEYoxqyfroUTNH0QAFwA_fBzAWKo7p66Is0tEE"
 }
 
 ENDPOINTS = {
@@ -17,7 +17,8 @@ ENDPOINTS = {
     "equipment_details": "/api/v1/common/guestUser/equipmentDetails/{}",
     "vehicle_details": "/api/v1/common/guestUser/vehicleDetails/{}",
     "user_profile_details": "/api/v1/user/profile/details",
-    "payment_list": "/api/v1/common/payment/paymentList"
+    "payment_list": "/api/v1/common/payment/paymentList",
+    "favourite_list": "/api/v1/user/favourite/fav_list"
 }
 
 COMMON_HEADERS = {
@@ -135,6 +136,16 @@ def get_payment_list(role="user", page=1, per_page=10, search="", start_date="",
         "search": search,
         "startDate": start_date,
         "endDate": end_date
+    }
+    return make_request(url, params=params, method="GET", token_type="user")
+
+def get_usr_favourite_list(type="company", page=1, per_page=10):
+    """Get the favourite list for the authenticated user. Type can be 'company', 'vehicle', or 'equipment'."""
+    url = BASE_URL + ENDPOINTS["favourite_list"]
+    params = {
+        "type": type,
+        "page": page,
+        "perPage": per_page
     }
     return make_request(url, params=params, method="GET", token_type="user")
 

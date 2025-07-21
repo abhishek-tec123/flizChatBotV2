@@ -22,6 +22,7 @@ def generate_response_from_groq(input_text: str, query: str = "", custom_prompt:
         "Ignore any fields containing URLs or media links.\n"
         "Only describe textual and numeric data relevant to the company and vehicles/equipment.\n"
         "Do not include any leading phrases like 'Here is a summary'. Keep the response clean and factual.\n\n"
+        "Do ot Incudes data like id of company, equipment, vehicle and category ID, sub-subcategory ID and other senstive details.\n"
     )
 
     groq_api_key = os.getenv("GROQ_API_KEY")
