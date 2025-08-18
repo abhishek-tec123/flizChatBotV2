@@ -247,13 +247,63 @@ def handle_equipment_details(query: str) -> Dict[str, Any]:
         "generated_response": generated_response
     }
 
+def filter_essential_order_info(data):
+    if not data.get("data") or not data["data"].get("itemList"):
+        return {"totalCount": 0, "items": []}
+
+    summary = {
+        "totalCount": data["data"].get("totalCount", 0),
+        "items": []
+    }
+
+    for item in data["data"]["itemList"]:
+        equipment_name = item.get("equipmentDetails", {}).get("equipmentName", "N/A")
+        company_name = item.get("companyDetails", {}).get("name", "N/A")
+
+        # Vehicle name placeholder – not available in current structure
+        vehicle_name = item.get("vehicleDetails", {}).get("vehicleImage", "")
+        vehicle_name = "Available" if vehicle_name else "Not Available"
+
+        summary["items"].append({
+            "companyName": company_name,
+            "equipmentName": equipment_name,
+            "vehicle": vehicle_name
+        })
+
+    return summary
+
+def filter_company_info(data):
+    """Filter essential company info for company list responses."""
+    keys = [
+        "_id", "uniqueId", "name", "company_rating", "city", "role", "totalAvailable_Equipments_quantity"
+    ]
+    if not data.get("data") or not data["data"].get("itemList"):
+        return {"totalCount": 0, "items": []}
+    summary = {
+        "totalCount": data["data"].get("totalCount", 0),
+        "items": []
+    }
+    for item in data["data"]["itemList"]:
+        filtered = {k: item.get(k) for k in keys if k in item}
+        summary["items"].append(filtered)
+    return summary
+
 def handle_generic_query(function_name: str, parameters: Dict, query: str) -> Dict[str, Any]:
     """Handle generic function calls."""
     from retrever import call_function_by_name
     response = call_function_by_name(function_name, parameters)
-    print("responsedew : ", response)
     print("response :", "success" if response else "failed")
-    generated_response = generate_llm_response(response, query)
+    # Filter and print the filtered result for company list functions
+    if function_name in ["get_booking_list"]:
+        filtered = filter_essential_order_info(response)
+        print("filtered_response_keys :", filtered)
+        generated_response = generate_llm_response(filtered, query)
+    elif function_name in ["get_renter_companies", "get_delivery_companies"]:
+        filtered = filter_company_info(response)
+        print("filtered_response_keys :", filtered)
+        generated_response = generate_llm_response(filtered, query)
+    else:
+        generated_response = generate_llm_response(response, query)
     print("generated_response :", generated_response)
     return {
         "api_called": function_name,
@@ -314,3 +364,20 @@ def handle_favourite_query(query: str) -> dict:
         "per_page": per_page,
         "generated_response": generated_response
     }
+
+def format_all_companies_bullet_list(full_response):
+    """Extract all companies from the API response and format as a bullet list, ensuring none are skipped."""
+    item_list = full_response.get("data", {}).get("itemList", [])
+    if not item_list:
+        return "No companies found."
+    lines = []
+    for company in item_list:
+        name = company.get("name", "No Company Name Available")
+        city = company.get("city") or company.get("address") or "N/A"
+        country = company.get("country", "N/A")
+        total_equipment = company.get("totalAvailable_Equipments_quantity", "Not available")
+        equipment_count = company.get("equipmentCount", "Not available")
+        rating = company.get("company_rating", "Not available")
+        min_price = company.get("minEquipmentPrice", "Not available")
+        lines.append(f"* {name} in {city}, {country}, with {total_equipment} total available equipment, {equipment_count} equipment count, company rating {rating}, and minimum equipment price {min_price}.")
+    return "\n".join(lines)

@@ -43,6 +43,7 @@ def handle_query(request: QueryRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="No matching function retrieved from the model.")
 
     parsed = parse_json_response(result)
+    print("model reterever : ", parsed)
     if not parsed:
         raise HTTPException(status_code=400, detail="Failed to parse model response.")
 

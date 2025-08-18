@@ -1,0 +1,100 @@
+# Save the natural language function description to a text file for vector embedding
+description = """
+Function Name: handle_company_asset_query
+
+Purpose:
+This function retrieves information about companies and their assets based on the level of detail provided in the user's query. It accepts three parameters:
+- company_type: a required string that specifies whether the user is referring to "renter" or "delivery" companies. It maps to either get_renter_companies or get_delivery_companies.
+- company_name: an optional string used to find a specific company by name within the selected company type.
+- asset_name: an optional string used to search for a specific asset (equipment or vehicle) within the selected company.
+
+The function operates in three modes:
+
+1. If only company_type is provided:
+   It fetches and returns a list of all companies of the given type, filtering out only key information such as name, city, role, etc.
+
+2. If both company_type and company_name are provided:
+   It locates the specified company and returns only the matched company details.
+
+3. If all three parameters are provided:
+   It retrieves the list of assets belonging to the matched company and searches for a specific asset by name.
+   - If the asset is found, it returns the company info, filtered asset list, and asset details.
+   - If not found, it returns the company info, filtered assets, and an appropriate error message.
+
+This function is useful for hierarchical asset search where a user might ask:
+- “Show me all equipment companies”
+- “Find the company named ‘Pennco’ under renter companies”
+- “Does Pennco have a Bobcat available?”
+
+Sample Query-to-Function Mapping:
+
+User Query: "List all delivery companies"
+→ Function: handle_company_asset_query
+→ Parameters: { "company_type": "get_delivery_companies" }
+
+User Query: "show all equipment under company Pennco" or "show renter company boat"
+→ Function: handle_company_asset_query
+→ Parameters: { "company_type": "get_renter_companies", "company_name": "Pennco" }
+
+User Query: "show all vehicle under company boat" or "show delivery company boat"
+→ Function: handle_company_asset_query
+→ Parameters: { "company_type": "get_delivery_companies", "company_name": "boat" }
+
+User Query: "Check if Bobcat is available in Pennco" or "Bobcat equipment is available in Pennco" or "show equipment detail Testing_Equipment from RenterNumberOne"
+→ Function: handle_company_asset_query
+→ Parameters: { "company_type": "get_renter_companies", "company_name": "Pennco", "asset_name": "Bobcat" }
+→ Parameters: { "company_type": "get_renter_companies", "company_name": "RenterNumberOne", "asset_name": "Testing_Equipment" }
+
+
+User Query: "Check if Fresh water tank is available in delivery company boat" or "Fresh water tank vehicle is available in boat" or or "show vehicle detail Trailer Dump Truck from HarisTestDeliveryAll"
+→ Function: handle_company_asset_query
+→ Parameters: { "company_type": "get_delivery_companies", "company_name": "boat", "asset_name": "Fresh water tank" }
+→ Parameters: { "company_type": "get_delivery_companies", "company_name": "HarisTestDeliveryAll", "asset_name": "Trailer Dump Truck" }
+
+"""
+
+
+# Save the natural language function description to a text file for vector embedding
+description = """
+Function Name: call_user_function
+
+Purpose:
+This function acts as a dispatcher that dynamically calls one of several predefined utility functions based on the provided function name and argument. It serves as a central gateway to invoke specific functionality without calling each function directly.
+
+It accepts two parameters:
+- function_name (str): The name of the function to call. Supported values include:
+  - "get_booking_list" → calls get_user_booking_list
+  - "get_usr_favourite_list" → calls get_favourite_list
+  - "company_cat_list" → calls renter_company_category
+- arg (optional): The argument passed to the respective function. Its usage depends on the specific function being invoked.
+
+How it works:
+- If function_name matches one of the supported values, it invokes the corresponding function with the provided argument.
+- If the function name is not recognized, it raises a ValueError indicating the unknown function.
+
+IMPORTANT:
+- Any user query about favorites (e.g., "my favorite company", "favorite vehicles", "favorite equipment"), categories (e.g., "show company categories"), or bookings (e.g., "my bookings", "cancelled bookings") MUST be routed to call_user_function, NOT handle_company_asset_query.
+- Only queries about searching for or listing companies/assets (not favorites, categories, or bookings) should use handle_company_asset_query.
+
+Sample Query-to-Function Mapping:
+
+User Query: "List my favorite vehicles"
+→ function_name: "get_usr_favourite_list", arg: "vehicle"
+→ Resolved Function: get_favourite_list("vehicle")
+
+User Query: "List my favorite companies"
+→ function_name: "get_usr_favourite_list", arg: "company"
+→ Resolved Function: get_favourite_list("company")
+
+User Query: "Show my bookings"
+→ function_name: "get_booking_list", arg: None
+→ Resolved Function: get_user_booking_list(None)
+
+User Query: "Show my cancelled bookings"
+→ function_name: "get_booking_list", arg: "cancelled"
+→ Resolved Function: get_user_booking_list("cancelled")
+
+User Query: "Show renter company categories Excavators"
+→ function_name: "company_cat_list", arg: Excavators
+→ Resolved Function: renter_company_category(Excavators)
+"""

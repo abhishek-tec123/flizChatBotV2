@@ -7,7 +7,7 @@ from langchain.schema import HumanMessage
 from dotenv import load_dotenv
 import logging
 import tiktoken
-from sumary import summarize_extracted_text
+from sumary2 import summarize_extracted_text
 # Load environment variables from .env
 load_dotenv()
 
@@ -17,7 +17,7 @@ class QueryRequest(BaseModel):
 
 def generate_response_from_groq(input_text: str, query: str = "", custom_prompt: str = None) -> str:
     base_prompt = custom_prompt or (
-        "give the consise response of user query\n"
+        "give the consise and exact response of user query and not show any type of id like Company id and other\n"
     )
 
     groq_api_key = os.getenv("GROQ_API_KEY")
@@ -60,7 +60,7 @@ import asyncio
 def process_full_api_response(input_text: str, query: str = "", custom_prompt: str = None) -> str:
     # First, summarize the input text asynchronously
     summary = asyncio.run(summarize_extracted_text(input_text))
-    print("this is summary : ",summary)
+    # print("this is summary : ",summary)
     # Now pass the summary to your Groq-based response generator
     final_response = generate_response_from_groq(summary, query=query, custom_prompt=custom_prompt)
     

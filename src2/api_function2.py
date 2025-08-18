@@ -5,20 +5,21 @@ BASE_URL = "https://dev.api.fliz.com.sa"
 
 # Authentication Tokens
 TOKENS = {
-    "guest": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NWUyYWNkOGIxMDA1MjQ2M2Y4NjQ3NiIsInJvbGUiOiJndWVzdF91c2VyIiwiaWF0IjoxNzUxMDAxODA1LCJleHAiOjE3NTM1OTM4MDV9.HPy1M0zJyXcGCmnG0yXuEW4sIhkqs3SmLpUlAEwQsJ0",
-    "user": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjVkN2M5N2U3ZWY5ZTBmOTkxNWY0ZiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzUzMTgzNjM5LCJleHAiOjE3NTM2MTU2Mzl9.e1qkF2xrOr3yU1oWOSSoV6vjO5WrwidEJcmWCUZzbqM"
+    "guest": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjVkN2M5N2U3ZWY5ZTBmOTkxNWY0ZiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzU1NTE2MTAxLCJleHAiOjE3NTU5NDgxMDF9.kZYtgnn3BVPsMDoM90fMmqMNedUt7NAQr_GC1S9IgFs",
+    "user": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MjVkN2M5N2U3ZWY5ZTBmOTkxNWY0ZiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzU1NTE2MTAxLCJleHAiOjE3NTU5NDgxMDF9.kZYtgnn3BVPsMDoM90fMmqMNedUt7NAQr_GC1S9IgFs"
 }
 
 ENDPOINTS = {
-    "delivery_list": "/api/v1/common/guestUser/renter_deliveryList",
-    "vehicle_list": "/api/v1/common/guestUser/vehilceList/{}",
-    "equipment_list": "/api/v1/common/guestUser/equipmentList/{}",
-    "booking_list": "/api/v1/user/booking/bookingList",
-    "equipment_details": "/api/v1/common/guestUser/equipmentDetails/{}",
-    "vehicle_details": "/api/v1/common/guestUser/vehicleDetails/{}",
+    "delivery_list": "/api/v1/user/home/renter_deliveryList",
+    "vehicle_list": "/api/v1/user/home/vehilceList/{}",
+    "equipment_list": "/api/v1/user/home/equipmentList/{}",
+    "equipment_details": "/api/v1/user/home/equipmentDetails/{}",
+    "vehicle_details": "/api/v1/user/home/vehicleDetails/{}",
     "user_profile_details": "/api/v1/user/profile/details",
     "payment_list": "/api/v1/common/payment/paymentList",
-    "favourite_list": "/api/v1/user/favourite/fav_list"
+    "favourite_list": "/api/v1/user/favourite/fav_list",
+    "booking_list": "/api/v1/user/booking/bookingList",
+    "company_cat_list": "/api/v1/user/home/renterCompanyData",
 }
 
 COMMON_HEADERS = {
@@ -82,7 +83,7 @@ def get_delivery_companies(page=1, per_page=10, search=None, cat_id=None, type=N
 
     return make_request(url, params=params, token_type="guest")
 
-def get_renter_companies(role="renter", search=None, page=1, per_page=10):
+def get_renter_companies(role="renter", search=None, page=1, per_page=15):
     url = BASE_URL + ENDPOINTS["delivery_list"]
     params = {
         "role": role,
@@ -93,6 +94,26 @@ def get_renter_companies(role="renter", search=None, page=1, per_page=10):
         params["search"] = search
 
     return make_request(url, params=params, token_type="guest")
+
+def company_cat_list(cat_search=None):
+    """
+    Get renter company data for authenticated user with optional catSearch.
+    This always uses role='renter', page=1, and perPage=18.
+    Equivalent to:
+    requests.get(
+        "https://dev.api.fliz.com.sa/api/v1/user/home/renterCompanyData?role=renter&page=1&perPage=18&catSearch=Excavators",
+        headers={"Authorization": "<user_token>"}
+    )
+    """
+    url = BASE_URL + ENDPOINTS["company_cat_list"]
+    params = {
+        "role": "renter",
+        "page": 1,
+        "perPage": 18
+    }
+    if cat_search:
+        params["catSearch"] = cat_search
+    return make_request(url, params=params, method="GET", token_type="user")
 
 def get_vehicle_list(company_id):
     url = BASE_URL + ENDPOINTS["vehicle_list"].format(company_id)
@@ -111,19 +132,14 @@ def get_vehicle_details(vehicle_id):
     return make_request(url, token_type="guest")
 
 # ==== Authenticated User API Functions ====
-def get_booking_list(page=1, per_page=10, status=None):
+def get_booking_list(page=1, per_page=100, status=""):
     url = BASE_URL + ENDPOINTS["booking_list"]
     params = {
         "page": page,
-        "perPage": per_page
+        "perPage": per_page,
+        "status": status
     }
-
-    valid_statuses = ["Completed", "Cancelled"]
-    if status and status.capitalize() in valid_statuses:
-        params["status"] = status.capitalize()
-
     return make_request(url, params=params, token_type="user")
-
 
 def get_user_profile_details():
     """Get the authenticated user's profile details."""
@@ -143,7 +159,7 @@ def get_payment_list(role="user", page=1, per_page=10, search="", start_date="",
     }
     return make_request(url, params=params, method="GET", token_type="user")
 
-def get_usr_favourite_list(type="company", page=1, per_page=10):
+def get_usr_favourite_list(type="company", page=1, per_page=100):
     """Get the favourite list for the authenticated user. Type can be 'company', 'vehicle', or 'equipment'."""
     url = BASE_URL + ENDPOINTS["favourite_list"]
     params = {
@@ -153,16 +169,18 @@ def get_usr_favourite_list(type="company", page=1, per_page=10):
     }
     return make_request(url, params=params, method="GET", token_type="user")
 
-# # ==== Main Function ====
-# if __name__ == "__main__":
-# #     # Example usage of the functions
-#     print("\n--- Delivery Companies ---")
-#     delivery_companies = get_delivery_companies(page=1, per_page=3)
-#     print(delivery_companies['data']['itemList'])
+# ==== Main Function ====
+if __name__ == "__main__":
+    # Example usage of the functions
+    delivery_companies = get_delivery_companies(page=1, per_page=3)
+    if delivery_companies and 'data' in delivery_companies:
+        print(delivery_companies['data']['itemList'])
+    else:
+        print("No delivery companies returned (possible legal restriction or 451 error).")
 
-#     print("\n--- Renter Companies ---")
-#     renter_companies = get_renter_companies(page=1, per_page=3)
-#     print(renter_companies)
+    # print("\n--- Renter Companies ---")
+    # renter_companies = get_renter_companies(page=1, per_page=3)
+    # print(renter_companies)
 
     # print("\n--- Vehicle Details ---")
     # vehicle_details = get_vehicle_details("6825f680064c919c60d06988")
@@ -175,3 +193,5 @@ def get_usr_favourite_list(type="company", page=1, per_page=10):
     # print("\n--- Completed Bookings ---")
     # completed_bookings = get_booking_list(status="Completed")
     # print(completed_bookings)
+# result = company_cat_list(cat_search="Excavators")
+# print(result)

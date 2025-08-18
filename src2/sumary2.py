@@ -49,15 +49,7 @@ def split_text_into_chunks(text: str, max_tokens: int = MAX_TOKENS_PER_CHUNK) ->
 
 async def summarize_extracted_text(input_text: str, custom_prompt: str = None) -> str:
     summarization_prompt = custom_prompt or (
-        # "List every company in the input JSON. For each company, include:\n"
         "summrize the given information based on user query each and every details also mention totalCount if Available"
-        # "- Name\n"
-        # "- Name\n"
-        # "- Location (city and country)\n"
-        # "- Total available equipment\n"
-        # "- Equipment count\n"
-        # "- Company rating (if available)\n"
-        # "- Minimum equipment price\n"
         "Do not omit any company. Use bullet points. Do not summarize or skip any company.\n"
     )
 
