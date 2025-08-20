@@ -98,3 +98,39 @@ User Query: "Show renter company categories Excavators"
 → function_name: "company_cat_list", arg: Excavators
 → Resolved Function: renter_company_category(Excavators)
 """
+
+Function Name: handle_company_asset_query
+
+Purpose:
+This function retrieves information about companies and their location and address provided in the user's query. It accepts one parameters:
+- company_type: a required string that specifies whether the user is referring to "renter" or "delivery" companies. It maps to either get_renter_companies or get_delivery_companies.
+
+User Query: "List all delivery companies which listed in noida city" or "show all delivery companies which location is delhi"
+→ Function: handle_company_asset_query
+→ Parameters: { "company_type": "get_delivery_companies" }
+
+User Query: "List all renter companies which listed in noida city" or "show all renter companies which location is delhi" or "give me renter company which location is noida" or "show renter company which locstion is noida"
+→ Function: handle_company_asset_query
+→ Parameters: { "company_type": "get_renter_companies" }
+
+
+description = """
+Function Name: call_payment_list_fun
+
+Purpose:
+This function retrieves and filters a user's payment history within a specific date range.  
+It accepts two parameters:
+- start_date (str): The beginning of the date range for which payment data should be fetched.
+- end_date (str): The end of the date range for which payment data should be fetched.
+
+Use Cases:
+- When a user wants to review their past payments, receipts, or transactions within a given timeframe.
+- Useful for expense tracking, financial reconciliation, or verifying completed payments.
+
+Sample Query-to-Function Mapping:
+
+User Query: "Show my payment history between 2025-07-02 and 2025-07-02" or "Show my payments between date 2025-07-02 and 2025-07-02"
+→ Function: call_payment_list_fun
+→ Parameters: { "start_date": "2025-07-02", "end_date": "2025-07-02" }
+
+"""

@@ -65,7 +65,7 @@ def make_request(url, method="GET", headers=None, params=None, token_type="guest
         return None
 
 # ==== Guest User API Functions ====
-def get_delivery_companies(page=1, per_page=10, search=None, cat_id=None, type=None, sizeTypetype=None):
+def get_delivery_companies(page=1, per_page=100, search=None, cat_id=None, type=None, sizeTypetype=None):
     url = BASE_URL + ENDPOINTS["delivery_list"]
     params = {
         "role": "delivery",
@@ -83,7 +83,7 @@ def get_delivery_companies(page=1, per_page=10, search=None, cat_id=None, type=N
 
     return make_request(url, params=params, token_type="guest")
 
-def get_renter_companies(role="renter", search=None, page=1, per_page=15):
+def get_renter_companies(role="renter", search=None, page=1, per_page=100):
     url = BASE_URL + ENDPOINTS["delivery_list"]
     params = {
         "role": role,
@@ -96,15 +96,7 @@ def get_renter_companies(role="renter", search=None, page=1, per_page=15):
     return make_request(url, params=params, token_type="guest")
 
 def company_cat_list(cat_search=None):
-    """
-    Get renter company data for authenticated user with optional catSearch.
-    This always uses role='renter', page=1, and perPage=18.
-    Equivalent to:
-    requests.get(
-        "https://dev.api.fliz.com.sa/api/v1/user/home/renterCompanyData?role=renter&page=1&perPage=18&catSearch=Excavators",
-        headers={"Authorization": "<user_token>"}
-    )
-    """
+
     url = BASE_URL + ENDPOINTS["company_cat_list"]
     params = {
         "role": "renter",
@@ -146,7 +138,18 @@ def get_user_profile_details():
     url = BASE_URL + ENDPOINTS["user_profile_details"]
     return make_request(url, method="GET", token_type="user")
 
-def get_payment_list(role="user", page=1, per_page=10, search="", start_date="", end_date=""):
+from datetime import datetime
+
+def format_date(date_str: str) -> str:
+    if not date_str:
+        return ""
+    try:
+        # Convert from "28 Jul 2025" → "2025-07-28"
+        return datetime.strptime(date_str, "%d %b %Y").strftime("%Y-%m-%d")
+    except ValueError:
+        return date_str  # assume already correct format
+
+def get_payment_list(role="user", page=1, per_page=100, search="", start_date="", end_date=""):
     """Get the payment list for the authenticated user."""
     url = BASE_URL + ENDPOINTS["payment_list"]
     params = {
@@ -154,8 +157,8 @@ def get_payment_list(role="user", page=1, per_page=10, search="", start_date="",
         "page": page,
         "perPage": per_page,
         "search": search,
-        "startDate": start_date,
-        "endDate": end_date
+        "startDate": format_date(start_date),
+        "endDate": format_date(end_date)
     }
     return make_request(url, params=params, method="GET", token_type="user")
 
@@ -170,13 +173,13 @@ def get_usr_favourite_list(type="company", page=1, per_page=100):
     return make_request(url, params=params, method="GET", token_type="user")
 
 # ==== Main Function ====
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # Example usage of the functions
-    delivery_companies = get_delivery_companies(page=1, per_page=3)
-    if delivery_companies and 'data' in delivery_companies:
-        print(delivery_companies['data']['itemList'])
-    else:
-        print("No delivery companies returned (possible legal restriction or 451 error).")
+    # delivery_companies = get_delivery_companies(page=1, per_page=3)
+    # if delivery_companies and 'data' in delivery_companies:
+    #     print(delivery_companies['data']['itemList'])
+    # else:
+    #     print("No delivery companies returned (possible legal restriction or 451 error).")
 
     # print("\n--- Renter Companies ---")
     # renter_companies = get_renter_companies(page=1, per_page=3)
@@ -193,5 +196,10 @@ if __name__ == "__main__":
     # print("\n--- Completed Bookings ---")
     # completed_bookings = get_booking_list(status="Completed")
     # print(completed_bookings)
-# result = company_cat_list(cat_search="Excavators")
-# print(result)
+
+# from usr_filter import filter_user_payment_data
+
+# result = get_payment_list(start_date="28 Jul 2025", end_date="28 Jul 2025")
+
+# filter__res = filter_user_payment_data(result)
+# print(filter__res)

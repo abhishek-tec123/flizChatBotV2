@@ -104,13 +104,21 @@ def handle_company_asset_query(company_type: str, company_name: Optional[str] = 
         return {"error": f"❌ Company '{company_name}' not found under type '{company_type}'."}
 
     if not asset_name:
-        # vehicle_list = get_vehicle_list_for_company(company["_id"])
-        # equipment_list = get_equipment_list_for_company(company["_id"])
-        return {
-            "company": company,
-            "vehicle_list": get_vehicle_list_for_company(company["_id"]),
-            "equipment_list": get_equipment_list_for_company(company["_id"])
-        }
+        if company_type == "get_renter_companies":
+            return {
+                "company": company,
+                "equipment_list": get_equipment_list_for_company(company["_id"])
+            }
+        elif company_type == "get_delivery_companies":
+            return {
+                "company": company,
+                "vehicle_list": get_vehicle_list_for_company(company["_id"])
+            }
+        else:
+            return {
+                "company": company,
+                "note": f"⚠ No asset list handler defined for company_type '{company_type}'."
+            }
 
     # Case 3: All three provided
     assets = get_company_assets_from_company_id(company_type, company["_id"])
@@ -160,6 +168,7 @@ def handle_company_asset_query(company_type: str, company_name: Optional[str] = 
         "company": company,
         "filtered_assets": filtered_assets,
     }
+
 
 # ans = handle_company_asset_query("get_delivery_companies","Force Motors","Non-potable water tank")
 # print(ans)

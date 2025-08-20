@@ -2,25 +2,29 @@ from api_function2 import (
     get_booking_list,
     get_usr_favourite_list,
     company_cat_list,
+    get_payment_list
 )
 from usr_filter import(
     filter_category_details_key,
     filter_favourite_equipments_key,
     filter_favourite_usr_companies_key,
     filter_user_orders_key,
-    # filter_booking_data
+    filter_user_payment_data
 )
-def get_user_booking_list(ststus):
+def get_user_booking_list(ststus: str | None):
+    if not ststus:  # covers None or empty string
+        # No status passed → return all bookings
+        return get_booking_list(status=None)
+
     normalized_status = ststus.lower()
     if normalized_status == "completed":
-        data = get_booking_list(status="Completed")
-        # filter_data = filter_booking_data(data)
+        return get_booking_list(status="Completed")
     elif normalized_status == "cancelled":
-        data = get_booking_list(status="Cancelled")
-        # filter_data = filter_booking_data(data)
+        return get_booking_list(status="Cancelled")
     else:
-        data = get_booking_list(status=None)
-    return data
+        # If some unknown status, default to all
+        return get_booking_list(status=None)
+
 
 def get_favourite_list(type):
     if type == "company":
@@ -45,14 +49,7 @@ def renter_company_category(cat):
 
 
 def call_user_function(function_name, arg=None):
-    """
-    Calls the appropriate user utility function based on the function name.
-    Args:
-        function_name (str): The name of the function to call.
-        arg: The argument to pass to the function (if needed).
-    Returns:
-        The result of the called function.
-    """
+
     if function_name == "get_booking_list":
         data =  get_user_booking_list(arg)
         filter_data = filter_user_orders_key(data)
@@ -67,6 +64,10 @@ def call_user_function(function_name, arg=None):
     else:
         raise ValueError(f"Unknown function name: {function_name}")
 
+def call_payment_list_fun(start_date: str, end_date: str):
+    result = get_payment_list(start_date=start_date, end_date=end_date)
+    filtered_res = filter_user_payment_data(result)
+    return filtered_res
 
 # anns = call_user_function("get_usr_favourite_list", "vehicle")
 # print(anns)

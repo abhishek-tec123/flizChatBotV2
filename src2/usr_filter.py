@@ -127,3 +127,56 @@ def filter_user_orders_key(data: Union[Dict[str, Any], List[Dict[str, Any]]]) ->
         "totalCount": total_count,
         # "bookings": filtered_list
     }
+
+
+from typing import Dict, Any, List
+
+def filter_user_payment_data(api_response: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Filter raw API response into a user-friendly format for chat.
+    """
+    try:
+        data = api_response.get("data", {})
+        spend_details = data.get("user_amount_spend_details", {})
+        items = data.get("itemList", [])
+
+        filtered_items: List[Dict[str, Any]] = []
+        for item in items:
+            filtered_item = {
+                "orderId": item.get("orderId"),
+                "transactionId": item.get("transactionId"),
+                "paymentStatus": item.get("paymentStatus"),
+                "totalAmount": item.get("totalAmount"),
+                "paidAmount": item.get("paidAmount"),
+                "dueAmount": item.get("dueAmount"),
+                "date": item.get("date"),
+                "time": item.get("time"),
+                # Optional asset/equipment info
+                "vehicleType": item.get("vehicleType"),
+                "vehicleSize": item.get("vehicleSize"),
+                "equipmentName": item.get("equipmentName"),
+                # Simplify installment details
+                # "installments": [
+                #     {
+                #         "type": inst.get("type"),
+                #         "paidAmount": inst.get("paidAmount"),
+                #         "paymentStatus": inst.get("paymentStatus"),
+                #         "date": inst.get("date")
+                #     }
+                #     for inst in item.get("installmentDetails", [])
+                # ]
+            }
+            filtered_items.append(filtered_item)
+
+        return {
+            "spend_summary": {
+                "total_paid": spend_details.get("total_paid_amount"),
+                "due_amount": spend_details.get("due_amount"),
+                "total_spent": spend_details.get("total_spend_amount"),
+            },
+            "orders": filtered_items,
+            "total_orders": data.get("count", 0)
+        }
+
+    except Exception as e:
+        return {"error": f"Failed to filter response: {str(e)}"}

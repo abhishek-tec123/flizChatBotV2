@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import json
 from utils2 import handle_company_asset_query
-from userutils import call_user_function
+from userutils import call_user_function,call_payment_list_fun
 from context2 import process_full_api_response
 # === Initialize FastAPI app ===
 app = FastAPI()
@@ -87,6 +87,20 @@ def handle_query(request: QueryRequest) -> Dict[str, Any]:
             return {"result": generate_llm_response(output, query)}
         return generate_llm_response(output, query)
         # return output
+    elif function_name == "call_payment_list_fun":
+        start_date = parameters.get("start_date")
+        end_date = parameters.get("end_date")
+        output = call_payment_list_fun(start_date, end_date)
+
+        # Ensure output is a dictionary
+        if not isinstance(output, dict):
+            return {"result": generate_llm_response(output, query)}
+        return generate_llm_response(output, query)
 
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported function: {function_name}")
+
+# === Health Check Route ===
+@app.get("/health")
+def health_check() -> Dict[str, str]:
+    return {"status": "ok", "message": "App is running!"}
